@@ -387,12 +387,10 @@ async def _flush_group_buffer(gid: str):
 
     history = list(user_sessions[session_id])
     
-    # 获取最近 20 条背景消息（时效性核心）
     bg_list = list(passive_buffer.get(session_id, []))
-    bg_str = ""
-    if bg_list:
-        bg_recent = bg_list[-20:]
-        bg_str = "【近期背景对话内容（仅供参考，帮助你判断当前话题）】：\n" + "\n".join(bg_recent) + "\n\n"
+    bg_context_msg = _build_group_bg_context_msg(session_id, limit=20)
+    if bg_context_msg:
+        history.append(bg_context_msg)
 
     # 获取最近成员列表（用于 @ 别人）
     recent_members = {} # {qq: name}
@@ -411,7 +409,7 @@ async def _flush_group_buffer(gid: str):
 
     # 直接让它根据上下文回复
     full_prompt = (
-        f"{bg_str}{members_info}"
+        f"{members_info}"
         "【当前群聊批量消息】\n"
         f"{combined_text}\n\n"
         "任务：你现在是群聊的一员（普拉娜），请根据上述对话内容给出你的【简短回复】。\n"
@@ -559,16 +557,15 @@ async def _do_reply_inner(bot: Bot, event: Event, session_id: str, history: list
         # 并且如果是群聊的前几句，带上背景
         request_msgs = list(history)
         if isinstance(event, GroupMessageEvent):
-             bg_list = list(passive_buffer.get(session_id, []))
-             if bg_list:
-                 # 取最近 20 条背景音，插到倒数第二位（user消息之前），让其更具时效性
-                 # history 末尾结构：[..., user_msg] 或 [..., user_msg, members_sys_msg]
-                 # 使用 insert(-1) 无法准确定位；改为在整个 request_msgs 末尾之前显式插入
-                 bg_recent = bg_list[-20:]
-                 bg_msg = {"role": "system", "content": "【群聊背景音（最近20条你未参与的消息，仅作参考）】：\n" + "\n".join(bg_recent)}
-                 # 在最后一条消息之前插入背景音（index=-1 等价，但用负数索引明确）
-                 insert_pos = max(len(request_msgs) - 1, 1)  # 至少在 system_prompt 之后
-                 request_msgs.insert(insert_pos, bg_msg)
+             bg_msg = _build_group_bg_context_msg(session_id, limit=20)
+             if bg_msg:
+                 # 将背景音稳定插入到“最后一条 user 消息”之前，确保其作为请求上下文生效
+                 insert_pos = len(request_msgs)
+                 for idx in range(len(request_msgs) - 1, -1, -1):
+                     if request_msgs[idx].get("role") == "user":
+                         insert_pos = idx
+                         break
+                 request_msgs.insert(max(insert_pos, 1), bg_msg)
 
         # === 注入文件上下文 ===
         if isinstance(event, PrivateMessageEvent):
@@ -595,6 +592,19 @@ async def _do_reply_inner(bot: Bot, event: Event, session_id: str, history: list
         traceback.print_exc()
         await bot.send(event, "（普拉娜似乎被绊倒了...）")
         _pm_buffer.pop(session_id, None)
+
+
+def _build_group_bg_context_msg(session_id: str, limit: int = 20) -> Optional[Dict]:
+    """构造群聊背景音上下文消息。"""
+    bg_list = list(passive_buffer.get(session_id, []))
+    if not bg_list:
+        return None
+
+    bg_recent = bg_list[-limit:]
+    return {
+        "role": "system",
+        "content": "【群聊背景音（最近20条你未参与的消息，仅作参考）】：\n" + "\n".join(bg_recent),
+    }
 
 
 async def _process_and_send_segments(bot: Bot, event: Event, session_id: str, final_resp: str, use_reply: bool = False):
