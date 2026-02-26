@@ -1,0 +1,29 @@
+[project]
+name = "chubot"
+version = "0.1.0"
+description = "chubot"
+readme = "README.md"
+requires-python = ">=3.10, <4.0"
+dependencies = [
+    "nonebot2[fastapi]>=2.4.4",
+    "nonebot-adapter-onebot>=2.4.6",
+    "nonebot-plugin-status>=0.9.0",
+    "nonebot-plugin-multincm>=0.3.0",
+    "nonebot-plugin-fakemsg>=0.2.0"
+]
+
+[tool.nonebot]
+plugin_dirs = []
+builtin_plugins = ["echo"]
+# 在这里写上要加载的插件，注意全用下划线！
+plugins = [
+    "nonebot_plugin_status",
+    "nonebot_plugin_multincm",
+    "nonebot_plugin_fakemsg"
+]
+
+[tool.nonebot.adapters]
+nonebot-adapter-onebot = [
+    { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" }
+]
+

@@ -1,0 +1,24 @@
+# Python cache/artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Runtime data (local state)
+data/sessions.json
+data/user_files/
+data/wolfram_images/
+data/nonebot_plugin_multincm/
+
+# Local model credentials
+config/models.json
+!config/models.example.json
+
+# Misc
+*.log
+.DS_Store

@@ -1,0 +1,23 @@
+{
+  "SMART": [
+    {
+      "name": "gemini-2.5-pro",
+      "api_base": "http://gcli2api:7861/v1/chat/completions",
+      "api_key": "YOUR_API_KEY"
+    }
+  ],
+  "FAST": [
+    {
+      "name": "gemini-2.5-flash",
+      "api_base": "http://gcli2api:7861/v1/chat/completions",
+      "api_key": "YOUR_API_KEY"
+    }
+  ],
+  "INSTANT": [
+    {
+      "name": "gemini-2.5-flash-lite",
+      "api_base": "http://gcli2api:7861/v1/chat/completions",
+      "api_key": "YOUR_API_KEY"
+    }
+  ]
+}
