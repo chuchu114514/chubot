@@ -1,108 +1,80 @@
-# nonebot
+# 什亭之匣 (Plana) - 自用 Nonebot2 机器人
 
-这是一个基于 NoneBot2 + OneBot V11 的自定义机器人目录，可独立作为仓库维护。
+> **「说明」**
+> 本项目是个人使用的的 QQ 机器人，底子是 [Nonebot2](https://github.com/nonebot/nonebot2)。写它的初衷是想在搞定基础聊天之余，能更爽地拿 Python 搓点新活儿，最后留给自己用。代码挂上来纯属分享一下，如果想交流或看机器人demo可以来qq群`638148063`。至于为什么叫chubot是因为最开始没想着是plana的人设，做着做着才确定下来
 
-## 1. 环境要求
-- Python 3.10+
-- 能接入 OneBot V11（例如 NapCat）
-- Linux/macOS/WSL（Windows 也可，命令按实际环境调整）
+## 1. 核心特性 (黑科技)
 
-## 2. 快速开始（本地运行）
-在 `nonebot` 目录执行：
+本机器人不仅仅是复读机，它还内置了一些奇奇怪怪的功能：
 
+* **多级 LLM 故障切换**：内置 `SMART`、`FAST`、`INSTANT` 三档模型配置，支持多 API 自动重试与回退，甚至能从 Gemini 3 Pro 一路退化到 Flash Lite，主打一个永不掉线。
+* **什亭之匣演算 (Wolfram Engine)**：通过调用wolfram engine，能处理复杂的符号运算、绘制函数图像。支持宿主机直接调用或 Docker 环境下的跨容器 HTTP 调度。
+* **分布式思维模块**（不好用）：
+* `#llm并行`：多核心并发解析任务，汇总多角度视角。
+* `#自动llm束`：模拟思维链拆解，递归处理复杂逻辑。
+* ~~利用wolfram engine进行复杂的数学任务（尚未实现）~~
+* **动态上下文管理**：支持发送 `.txt` 或 `.py` 文件直接作为对话背景；支持解析合并转发的聊天记录；还会自动压缩超长历史记录。
+* **群聊背景监听**：即便不艾特它，它也会悄悄记录群聊“背景音”，方便在被召唤时瞬间理解前因后果。
+
+## 2. 快速部署
+
+### 本地开发模式
+
+1. **装依赖**：
 ```bash
 pip install "nonebot2[fastapi]" nonebot-adapter-onebot nonebot-plugin-status nonebot-plugin-multincm nonebot-plugin-fakemsg httpx
-cp .env.example .env
-cp config/models.example.json config/models.json
+
+```
+
+
+2. **配环境**：
+* 拷贝 `.env.example` 为 `.env`。
+* 拷贝 `config/models.example.json` 为 `config/models.json`。
+
+
+3. **跑起来**：
+```bash
 python bot.py
+
 ```
 
-## 3. 配置说明
 
-### 3.1 OneBot / NoneBot 基础配置
-编辑 `.env`（从 `.env.example` 复制）：
-- `HOST` / `PORT`: 监听地址与端口
-- `ONEBOT_ACCESS_TOKEN`: 与 OneBot 服务端一致
-- `SUPERUSERS`: 超级用户 QQ 列表
 
-### 3.2 模型配置
-编辑 `config/models.json`：
-- 三个分组：`SMART` / `FAST` / `INSTANT`
-- 每个模型需要：`name`、`api_base`、`api_key`
+### Docker 容器化
 
-程序会按分组顺序自动故障切换（同组单模型失败会重试并回退到下一个）。
-
-### 3.3 Wolfram 服务（可选）
-如果你启用了 Wolfram 相关能力，可单独启动：
+如果你喜欢干净的环境，可以使用 Docker：
 
 ```bash
-python wolfram_server.py
+docker build -t plana-bot .
+docker run --rm -it --env-file .env -v $(pwd)/config:/app/config -v $(pwd)/data:/app/data plana-bot
+
 ```
 
-常用环境变量：
-- `WOLFRAM_SERVER_HOST`（默认 `0.0.0.0`）
-- `WOLFRAM_SERVER_PORT`（默认 `9876`）
-- `WOLFRAM_EXECUTABLE`（WolframKernel 路径）
-- `WOLFRAM_PASSWORD_FILE`（授权文件路径）
+## 3. 配置文件指南
 
-## 4. Docker 运行
+### .env 核心配置
 
-```bash
-docker build -t my-nonebot .
-docker run --rm -it \
-  --env-file .env \
-  -v $(pwd)/config:/app/config \
-  -v $(pwd)/data:/app/data \
-  my-nonebot
-```
+* `SUPERUSERS`: 你的 QQ 号，只有你能让它执行敏感操作。
+* `ONEBOT_ACCESS_TOKEN`: 和你的 OneBot 签名对上。
 
-## 5. 常见问题
-- 启动报连接 OneBot 失败：检查 OneBot 服务是否启动、端口和 Token 是否一致。
-- 模型请求报 401/403：检查 `config/models.json` 的 `api_key` 是否正确。
-- 插件导入失败：确认依赖已安装，或重新执行快速开始中的 `pip install`。
+### models.json 模型配置
 
-## 6. 仓库提交建议
+你需要配置至少一个模型，支持 OpenAI 格式的 API。别忘了把你的 API Key 塞进去。
 
-### 推荐提交
-- `bot.py`
-- `wolfram_server.py`
-- `plugins/`
-- `pyproject.toml`
-- `Dockerfile`
-- `.gitignore`
-- `.env.example`
-- `config/models.example.json`
-- `README.md`
+## 4. 常用指令 (给老师的备忘录)
 
-### 不建议提交
-- `.env`、`.env.*`
-- `config/models.json`
-- `data/` 下运行态数据（会话、图片、用户文件等）
-- `__pycache__/`、`*.pyc`
+* `#切pro` / `#切flash` / `#切instant`：随时切换计算能耗模式。
+* `#图片`：开启视觉和提示词录制模式，批量投喂图片后一并分析。
+* `#计算 <内容>`：调用 Wolfram engine 进行数学演算。
+* `#总结`：整理最近的聊天摘要（暂时不是普拉娜的视角）。
+* `/文件列表`：查看并开启你通过私聊发给它的上下文文件。
+* `重置`：格式化当前会话
 
-## 7. 独立仓库推送
+## 5. 开发建议
 
-```bash
-cd /root/my_bot/nonebot
-git init
-git add .
-git commit -m "init: custom nonebot bot"
-git branch -M main
-git remote add origin <your-repo-url>
-git push -u origin main
-```
+如果你想往 `plugins/` 目录加新活儿，建议多利用 `common.py` 里的 `query_llm` 和 `debug_log`
 
-## 8. 一键提交并推送
+---
 
-项目根目录提供了 `push.sh`，运行后只会询问一次 commit 内容，然后自动执行 `git add -A`、`git commit`、`git push`。
-
-```bash
-cd /root/my_bot/nonebot
-chmod +x push.sh
-./push.sh
-```
-
-首次使用前请确保：
-- 已完成 `git init`
-- 已配置 `origin`
-- 已配置 `git user.name` 和 `git user.email`
+**最后说一句：**
+代码主要使用AI生成，后续会手工+AI微调代码细节
